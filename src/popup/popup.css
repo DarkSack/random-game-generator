@@ -1,0 +1,61 @@
+@import '../shared/styles/theme.css';
+@import '../shared/styles/components.css';
+
+/* ---------- Popup ---------- */
+
+body {
+  width: 380px;
+}
+
+.pop {
+  display: flex;
+  flex-direction: column;
+  min-height: 480px;
+  padding: 14px;
+  background: var(--bg);
+  gap: 14px;
+}
+
+.pop__header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.pop__logo {
+  font-size: 20px;
+}
+
+.pop__title {
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  flex: 1;
+  min-width: 0;
+}
+
+.pop__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.pop__footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.pop__hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  text-align: center;
+}
