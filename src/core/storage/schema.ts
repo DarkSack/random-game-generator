@@ -1,6 +1,7 @@
 import type { FilterCriteria } from '../types/filters'
 import { DEFAULT_FILTERS } from '../types/filters'
 import type { Game } from '../types/game'
+import { DEFAULT_DISCOVER_CRITERIA, type DiscoverCriteria } from '../discover/types'
 
 /** Versión del esquema persistido. Súbela al cambiar la forma de los datos y añade una migración. */
 export const SCHEMA_VERSION = 1
@@ -27,7 +28,14 @@ export interface Settings {
   autoMarkPlaying: boolean
   /** Al completar un juego, pide confirmación antes de borrarlo de la biblioteca. */
   confirmBeforeDelete: boolean
+  /** Base del backend de "Descubrir", sin barra final. */
+  discoverApiUrl: string
+  /** Últimos criterios usados en "Descubrir", para no volver a rellenarlos. */
+  discoverCriteria: DiscoverCriteria
 }
+
+/** Backend local de desarrollo (`npm run api:dev`). Se cambia en Ajustes tras desplegar. */
+export const DEFAULT_DISCOVER_API_URL = 'http://localhost:8787'
 
 export const DEFAULT_SETTINGS: Settings = {
   defaultModeId: 'completely-random',
@@ -36,6 +44,8 @@ export const DEFAULT_SETTINGS: Settings = {
   spinDurationMs: 1400,
   autoMarkPlaying: true,
   confirmBeforeDelete: true,
+  discoverApiUrl: DEFAULT_DISCOVER_API_URL,
+  discoverCriteria: { ...DEFAULT_DISCOVER_CRITERIA },
 }
 
 export interface SpinRecord {
@@ -64,6 +74,10 @@ export function migrateSettings(raw: unknown, _fromVersion: number): Settings {
     ...DEFAULT_SETTINGS,
     ...input,
     filters: { ...DEFAULT_FILTERS, ...(input.filters ?? {}) },
+    // Fusión campo a campo: una instalación anterior a "Descubrir" no trae estos
+    // ajustes, y uno añadido en el futuro no debe borrar los ya guardados.
+    discoverCriteria: { ...DEFAULT_DISCOVER_CRITERIA, ...(input.discoverCriteria ?? {}) },
+    discoverApiUrl: (input.discoverApiUrl ?? DEFAULT_DISCOVER_API_URL).replace(/\/+$/, ''),
   }
 }
 

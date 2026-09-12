@@ -3,6 +3,18 @@ import { genreQueryTerm, toCanonicalGenres, toPlayerModes } from '../genres'
 import { fetchJson } from '../http'
 import { discountPct, type CatalogProvider } from '../provider'
 
+/** Modos de juego a partir de los atributos Xbox Live de la ficha. */
+function playerModesFrom(product: CatalogProduct): Array<'single' | 'multi' | 'coop'> {
+  const names = (product.Properties?.Attributes ?? []).map((attribute) => attribute.Name ?? '')
+  const modes = new Set<'single' | 'multi' | 'coop'>()
+  for (const name of names) {
+    if (/singleplayer/i.test(name)) modes.add('single')
+    if (/multiplayer/i.test(name)) modes.add('multi')
+    if (/coop/i.test(name)) modes.add('coop')
+  }
+  return modes.size ? [...modes] : toPlayerModes(product.Properties?.Categories ?? [])
+}
+
 /**
  * Catálogo de Xbox.
  *
@@ -31,13 +43,15 @@ interface SearchResponse {
 
 interface CatalogProduct {
   ProductId: string
+  /** 'Game' para juegos base; 'Durable'/'Consumable' para DLC, pases y monedas. */
+  ProductKind?: string
   LocalizedProperties?: Array<{
     ProductTitle?: string
     ShortDescription?: string
     ProductDescription?: string
     Images?: Array<{ ImagePurpose?: string; Uri?: string }>
   }>
-  Properties?: { Categories?: string[] }
+  Properties?: { Categories?: string[]; Attributes?: Array<{ Name?: string }> }
   DisplaySkuAvailabilities?: Array<{
     Availabilities?: Array<{
       OrderManagementData?: {
@@ -58,9 +72,9 @@ function searchUrl(term: string, region: string, limit: number): string {
     market: region.toUpperCase(),
     locale: `es-${region.toUpperCase()}`,
     deviceFamily: 'Windows.Xbox',
-    mediaType: 'Apps',
+    // Con 'Apps' el buscador devuelve aplicaciones (reproductores, utilidades).
+    mediaType: 'Games',
     appVersion: APP_VERSION,
-    productFamilyNames: 'Games',
     count: String(Math.min(25, limit * 2)),
   })
   return `${SEARCH}?${params}`
@@ -119,7 +133,10 @@ export const xboxProvider: CatalogProvider = {
       browserAgent: true,
     })
 
-    return (catalog.Products ?? []).map((product): DiscoverGame => {
+    return (catalog.Products ?? [])
+      // Fuera DLC, temporadas y paquetes: se recomienda el juego, no sus añadidos.
+      .filter((product) => !product.ProductKind || product.ProductKind === 'Game')
+      .map((product): DiscoverGame => {
       const localized = product.LocalizedProperties?.[0]
       const priceInfo =
         product.DisplaySkuAvailabilities?.[0]?.Availabilities?.[0]?.OrderManagementData?.Price
@@ -145,7 +162,7 @@ export const xboxProvider: CatalogProvider = {
         name: localized?.ProductTitle ?? '',
         platform: 'xbox',
         genres: toCanonicalGenres(categories),
-        playerModes: toPlayerModes(categories),
+        playerModes: playerModesFrom(product),
         coverUrl: pickImage(product),
         description: localized?.ShortDescription ?? localized?.ProductDescription ?? '',
         rating: rating ? Math.round(rating * 2 * 10) / 10 : null,

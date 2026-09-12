@@ -1,22 +1,24 @@
 import { useEffect, useState } from 'react'
 import { takePendingView } from '@core/index'
 import { useLibrary } from '@shared/hooks/use-library'
+import { DiscoverView } from './views/DiscoverView'
 import { RandomizerView } from './views/RandomizerView'
 import { LibraryView } from './views/LibraryView'
 import { StatsView } from './views/StatsView'
 import { SettingsView } from './views/SettingsView'
 
-type ViewId = 'randomizer' | 'library' | 'stats' | 'settings'
+type ViewId = 'randomizer' | 'discover' | 'library' | 'stats' | 'settings'
 
 const VIEWS: Array<{ id: ViewId; label: string; emoji: string }> = [
   { id: 'randomizer', label: 'Randomizador', emoji: '🎲' },
+  { id: 'discover', label: 'Descubrir', emoji: '🔎' },
   { id: 'library', label: 'Biblioteca', emoji: '📚' },
   { id: 'stats', label: 'Estadísticas', emoji: '📊' },
   { id: 'settings', label: 'Ajustes', emoji: '⚙️' },
 ]
 
 function viewFromPending(value: string | null): ViewId {
-  if (['randomizer', 'library', 'stats', 'settings'].includes(value ?? '')) {
+  if (['randomizer', 'discover', 'library', 'stats', 'settings'].includes(value ?? '')) {
     return value as ViewId
   }
   return 'randomizer'
@@ -71,6 +73,8 @@ export function App() {
           <p className="muted">Cargando biblioteca…</p>
         ) : view === 'randomizer' ? (
           <RandomizerView />
+        ) : view === 'discover' ? (
+          <DiscoverView />
         ) : view === 'library' ? (
           <LibraryView />
         ) : view === 'stats' ? (

@@ -26,7 +26,7 @@ const GENRE_TERMS: Record<DiscoverGenre, string[]> = {
   rpg: ['rpg', 'role', 'rol', 'jdr'],
   shooter: ['shooter', 'disparos', 'fps', 'first-person'],
   strategy: ['strategy', 'estrategia', 'tactics', 'tactica'],
-  puzzle: ['puzzle', 'rompecabezas', 'logica'],
+  puzzle: ['puzzle', 'puzle', 'rompecabezas', 'logica'],
   platformer: ['platform', 'plataforma'],
   racing: ['racing', 'carreras', 'driving', 'conduccion'],
   sports: ['sport', 'deporte'],

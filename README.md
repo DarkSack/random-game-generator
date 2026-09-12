@@ -3,11 +3,13 @@
 Extensión de Chrome (Manifest V3) que convierte tu backlog en algo jugable: registras tu
 biblioteca, aplicas filtros y dejas que un sorteo *de verdad* aleatorio decida a qué juegas hoy.
 
-No es un botón de "juego al azar": es un pequeño gestor de backlog con modos de selección
-inteligentes, estadísticas y persistencia local.
+Tiene dos mitades que se alimentan entre sí:
 
-**La v1 funciona 100 % offline.** No hay backend, no hay peticiones de red, no sale nada del
-navegador.
+- **Tu biblioteca** — gestor de backlog con sorteo inteligente, modos de selección y estadísticas.
+  Funciona **100 % offline**: no sale nada del navegador.
+- **Descubrir** — le dices géneros, rango de precio y plataformas, y busca en Steam, Epic, GOG,
+  Nintendo y Xbox un juego que todavía no tienes. Lo que te guste pasa a tu wishlist con un clic.
+  Es la única parte que usa red, y solo cuando la pides.
 
 ---
 
@@ -36,7 +38,9 @@ npm run dev
 | `npm run dev` | Extension.js en modo desarrollo, con recarga automática |
 | `npm run build` | Compila la extensión a `dist/chrome` |
 | `npm run typecheck` | `tsc --noEmit` sobre todo el proyecto |
-| `npm test` | Suite del núcleo (61 tests, `node:test`) |
+| `npm test` | Suite completa (88 tests, `node:test`): núcleo, recomendador y backend |
+| `npm run api:dev` | Backend de Descubrir en local, en `http://localhost:8787` |
+| `npm run api:typecheck` | Tipos del backend |
 
 Para inspeccionar la UI sin cargar la extensión en Chrome:
 
@@ -67,6 +71,39 @@ la biblioteca vacía y en Ajustes— siembra 20 fichas elegidas para que los nue
 candidatos (hay un test que lo garantiza). Van marcadas con el tag `Ejemplo`, así que buscar por
 él las agrupa para borrarlas; y como pasan por la misma deduplicación, cargarlas dos veces no
 duplica nada.
+
+### Descubrir
+
+Pestaña que recomienda juegos **que no tienes** a partir de:
+
+- **Plataformas**: PC, Switch, Xbox (PlayStation aparece desactivada, ver limitaciones).
+- **Géneros**: 16 géneros canónicos que significan lo mismo en todas las tiendas.
+- **Rango de precio** en la moneda de tu región, **nota mínima**, **modos de juego**
+  (un jugador, multijugador, cooperativo), **solo con descuento** e **incluir gratuitos**.
+- **Ocultar lo que ya tengo**: descarta lo que esté en tu biblioteca, en cualquier estado.
+
+Muestra portada, géneros, nota, descripción, la oferta más barata y la comparativa entre tiendas
+cuando el mismo juego está en varias. *Otra sugerencia* reutiliza la búsqueda (no vuelve a llamar a
+las tiendas) y no repite mientras queden alternativas; *Guardar en wishlist* lo convierte en ficha
+de biblioteca con el tag `Descubierto`, el precio del momento y el enlace a la tienda.
+
+| Tienda | Catálogo | Precio | Fuente |
+| --- | --- | --- | --- |
+| Steam, Epic, GOG, Humble, Fanatical | ✅ | ✅ Steam en tu moneda; el resto en USD | CheapShark + Steam appdetails |
+| Nintendo eShop | ✅ | ⚠️ Solo en países europeos | Índice Solr del eShop + API oficial de precios |
+| Microsoft Store (Xbox) | ✅ | ✅ En tu moneda | StoreEdge + DisplayCatalog |
+| PlayStation Store | ❌ | ❌ | — |
+
+**Limitaciones verificadas, no supuestas:**
+
+- **PlayStation** rechaza toda consulta que no lleve un hash de *persisted query* en su lista
+  blanca, y Sony los rota en cada despliegue. El proveedor está declarado en estado `planned` y la
+  respuesta lo explica en vez de omitirlo.
+- **Nintendo** solo publica precio para su catálogo europeo en países europeos (en México y EE. UU.
+  responde `not_found`). Fuera de Europa se muestra el precio de España **como referencia en EUR**,
+  y la interfaz avisa de que esos juegos no pueden entrar en un rango de precio en tu moneda.
+- **Nunca se convierten monedas.** Una oferta en USD no cuenta para un tope en MXN: comparar sin
+  tipo de cambio sería inventarse la respuesta.
 
 ### Randomizador
 
@@ -135,7 +172,8 @@ src/
 │   ├── modes/             # Registro de modos de selección
 │   ├── stats/             # Cálculo de estadísticas
 │   ├── importers/         # Contrato de proveedores, registro e importación por fichero
-│   └── messaging/         # Contrato de mensajes entre contextos
+│   ├── messaging/         # Contrato de mensajes entre contextos
+│   └── discover/          # Contrato compartido con el backend + cliente del recomendador
 ├── shared/                # React compartido por popup y dashboard
 │   ├── hooks/             # use-library (estado global), use-spin (máquina del sorteo)
 │   ├── components/        # ResultCard, SpinButton, ModeSelector, FiltersPanel, átomos
@@ -143,17 +181,38 @@ src/
 ├── background/            # Service worker MV3
 ├── popup/                 # Popup compacto (380 px)
 └── dashboard/             # Página completa (options_ui, open_in_tab)
+
+server/                    # Backend de Descubrir (Vercel, sin framework)
+├── api/discover.ts        # GET /api/discover — firma estándar Request -> Response
+├── dev.ts                 # El mismo handler servido en local
+└── src/
+    ├── discover.ts        # Orquestación, filtrado puro y caché de catálogos
+    ├── genres.ts          # Traducción de la taxonomía de cada tienda
+    └── providers/         # pc · nintendo · xbox · playstation (planned)
 ```
 
 Tres decisiones que explican el resto:
 
 1. **El núcleo no sabe que es una extensión.** `src/core` no importa React ni toca el DOM y la
-   persistencia está detrás de la interfaz `KeyValueStore`, así que los 61 tests corren en Node
+   persistencia está detrás de la interfaz `KeyValueStore`, así que los tests corren en Node
    sin simular Chrome.
 2. **La UI nunca habla con `chrome.storage`.** Todo pasa por `libraryRepository`, que normaliza
    entidades y emite cambios; popup y dashboard abiertos a la vez ven siempre lo mismo.
 3. **El service worker es deliberadamente delgado**: migraciones al instalar, menú contextual y
    badge del icono. Ninguna lógica de negocio vive ahí.
+
+### Desplegar el backend de Descubrir
+
+La extensión apunta por defecto a `http://localhost:8787` (`npm run api:dev`). Para usarla sin tener
+el servidor local abierto:
+
+1. Crea un proyecto en Vercel desde este repositorio con **Root Directory = `server`** y deja
+   activado *Include source files outside of the Root Directory*: el backend importa el contrato
+   compartido de `src/core/discover/types.ts`.
+2. Copia la URL del despliegue en **Ajustes → Descubrir → Servidor de recomendaciones**.
+
+El endpoint no guarda estado ni credenciales: sirve datos públicos de catálogo con CORS abierto y
+cabeceras de caché de borde (10 min, 1 h de `stale-while-revalidate`).
 
 ### Añadir un modo de selección
 
@@ -190,6 +249,8 @@ viven en `libraryRepository.importGames`, y la pantalla de ajustes se genera des
 
 ## Privacidad
 
-Todo se guarda en el almacenamiento local del navegador. La extensión no hace peticiones de red,
-no incluye analítica y no tiene permisos de host. Desde **Ajustes → Datos y privacidad** puedes
+Tu biblioteca se guarda solo en el almacenamiento local del navegador y nunca sale de él. La única
+petición de red es la de **Descubrir**, y solo envía los criterios de búsqueda (géneros, precio,
+plataformas, región): ni tu biblioteca ni ningún dato personal. "Ocultar lo que ya tengo" se
+resuelve en tu navegador. Sin analítica y sin permisos de host. Desde **Ajustes → Datos y privacidad** puedes
 exportar una copia, vaciar la biblioteca o borrar el historial de sorteos.

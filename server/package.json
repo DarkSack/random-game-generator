@@ -1,0 +1,10 @@
+{
+  "name": "random-game-generator-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend de Descubrir: catálogo y precios de PC, Nintendo y Xbox normalizados.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}

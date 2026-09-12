@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { DEFAULT_FILTERS, SELECTION_MODES, countActiveFilters, listProviders } from '@core/index'
+import {
+  DEFAULT_DISCOVER_API_URL,
+  DEFAULT_FILTERS,
+  SELECTION_MODES,
+  countActiveFilters,
+  listProviders,
+} from '@core/index'
 import { useLibrary } from '@shared/hooks/use-library'
 import { useSampleLibrary } from '@shared/hooks/use-sample-library'
 
@@ -120,9 +126,34 @@ export function SettingsView() {
       </section>
 
       <section className="panel">
+        <div className="panel__title">Descubrir</div>
+        <div className="field">
+          <label className="field__label" htmlFor="settings-discover-url">
+            Servidor de recomendaciones
+          </label>
+          <input
+            id="settings-discover-url"
+            className="input"
+            type="url"
+            spellCheck={false}
+            placeholder={DEFAULT_DISCOVER_API_URL}
+            defaultValue={settings.discoverApiUrl}
+            onBlur={(event) => {
+              const value = event.target.value.trim().replace(/\/+$/, '') || DEFAULT_DISCOVER_API_URL
+              if (value !== settings.discoverApiUrl) void actions.updateSettings({ discoverApiUrl: value })
+            }}
+          />
+          <span className="field__hint">
+            Descubrir es la única función que sale a internet, y solo cuando la usas. En desarrollo
+            arranca el servidor con <code>npm run api:dev</code>; tras desplegarlo, pega aquí su URL.
+          </span>
+        </div>
+      </section>
+
+      <section className="panel">
         <div className="panel__title">Importadores de tiendas (próximamente)</div>
         <p className="field__hint">
-          La extensión funciona 100 % offline. Estos orígenes están preparados en la arquitectura
+          La biblioteca funciona 100 % offline. Estos orígenes están preparados en la arquitectura
           para una versión futura: al implementarse, tus juegos se importarán y fusionarán con esta
           misma biblioteca.
         </p>
