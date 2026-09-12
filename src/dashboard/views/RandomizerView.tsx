@@ -1,4 +1,5 @@
 import { useLibrary } from '@shared/hooks/use-library'
+import { useSampleLibrary } from '@shared/hooks/use-sample-library'
 import { useSpin } from '@shared/hooks/use-spin'
 import { EmptyState } from '@shared/components/atoms'
 import { FiltersPanel } from '@shared/components/FiltersPanel'
@@ -8,7 +9,39 @@ import { SpinButton } from '@shared/components/SpinButton'
 
 export function RandomizerView() {
   const { games, settings, facets, stats, actions } = useLibrary()
+  const sample = useSampleLibrary()
   const spin = useSpin()
+
+  // Primer arranque: ni el selector de modos ni el botón de sorteo pueden hacer
+  // nada con la biblioteca vacía, así que ofrecemos la única salida útil.
+  if (!games.length) {
+    return (
+      <div className="stack" style={{ gap: 22 }}>
+        <section className="hero">
+          <h1 className="hero__title">🎲 ¿QUÉ JUGAMOS?</h1>
+          <p className="hero__subtitle muted">
+            Aún no hay nada que sortear. Registra tus juegos o carga una biblioteca de ejemplo para
+            ver cómo funciona.
+          </p>
+        </section>
+
+        <EmptyState
+          icon="🎁"
+          title="Empieza con una biblioteca de ejemplo"
+          description={`${sample.size} juegos de muestra, elegidos para que todos los modos de selección tengan candidatos. Puedes borrarlos cuando quieras: van marcados con el tag «Ejemplo».`}
+          action={
+            <button
+              className="btn btn--primary"
+              onClick={() => void sample.load()}
+              disabled={sample.loading}
+            >
+              {sample.loading ? 'Cargando…' : `🎁 Cargar ${sample.size} juegos de ejemplo`}
+            </button>
+          }
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="stack" style={{ gap: 22 }}>

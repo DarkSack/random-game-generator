@@ -36,7 +36,7 @@ npm run dev
 | `npm run dev` | Extension.js en modo desarrollo, con recarga automática |
 | `npm run build` | Compila la extensión a `dist/chrome` |
 | `npm run typecheck` | `tsc --noEmit` sobre todo el proyecto |
-| `npm test` | Suite del núcleo (56 tests, `node:test`) |
+| `npm test` | Suite del núcleo (61 tests, `node:test`) |
 
 Para inspeccionar la UI sin cargar la extensión en Chrome:
 
@@ -61,6 +61,12 @@ exclusión del sorteo. Estados: **Backlog, Jugando, Completado, Abandonado, Wish
 También hay importación y exportación por fichero (JSON o CSV), con deduplicación por
 `nombre@plataforma` —o por `origen:externalId` cuando viene de una tienda— y fusión que **no
 pisa** lo que hayas editado a mano.
+
+Si arrancas de cero, el botón **🎁 Cargar biblioteca de ejemplo** —en el randomizador vacío, en
+la biblioteca vacía y en Ajustes— siembra 20 fichas elegidas para que los nueve modos tengan
+candidatos (hay un test que lo garantiza). Van marcadas con el tag `Ejemplo`, así que buscar por
+él las agrupa para borrarlas; y como pasan por la misma deduplicación, cargarlas dos veces no
+duplica nada.
 
 ### Randomizador
 
@@ -142,7 +148,7 @@ src/
 Tres decisiones que explican el resto:
 
 1. **El núcleo no sabe que es una extensión.** `src/core` no importa React ni toca el DOM y la
-   persistencia está detrás de la interfaz `KeyValueStore`, así que los 56 tests corren en Node
+   persistencia está detrás de la interfaz `KeyValueStore`, así que los 61 tests corren en Node
    sin simular Chrome.
 2. **La UI nunca habla con `chrome.storage`.** Todo pasa por `libraryRepository`, que normaliza
    entidades y emite cambios; popup y dashboard abiertos a la vez ven siempre lo mismo.

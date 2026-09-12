@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { DEFAULT_FILTERS, SELECTION_MODES, countActiveFilters, listProviders } from '@core/index'
 import { useLibrary } from '@shared/hooks/use-library'
+import { useSampleLibrary } from '@shared/hooks/use-sample-library'
 
 export function SettingsView() {
   const { games, session, settings, actions } = useLibrary()
+  const sample = useSampleLibrary()
   const [confirmClear, setConfirmClear] = useState(false)
   const [confirmSession, setConfirmSession] = useState(false)
 
@@ -160,6 +162,9 @@ export function SettingsView() {
           navegador con <code>chrome.storage.local</code>: nada sale de aquí.
         </p>
         <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+          <button className="btn btn--sm" onClick={() => void sample.load()} disabled={sample.loading}>
+            {sample.loading ? 'Cargando…' : `🎁 Cargar biblioteca de ejemplo (${sample.size})`}
+          </button>
           <button
             className="btn btn--sm btn--danger"
             onClick={() => (confirmClear ? void actions.clearLibrary() : setConfirmClear(true))}

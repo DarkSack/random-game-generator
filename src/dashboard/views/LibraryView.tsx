@@ -1,11 +1,7 @@
 import { useMemo, useState } from 'react'
-import {
-  buildBackup,
-  parseImportFile,
-  type Game,
-  type ImportSummary,
-} from '@core/index'
+import { buildBackup, parseImportFile, type Game, type ImportSummary } from '@core/index'
 import { useLibrary } from '@shared/hooks/use-library'
+import { sampleSummaryMessage, useSampleLibrary } from '@shared/hooks/use-sample-library'
 import { EmptyState, GameCover, StatusBadge } from '@shared/components/atoms'
 import { Modal } from '@shared/components/Modal'
 import { GameForm } from '../components/GameForm'
@@ -24,6 +20,7 @@ function useToast(timeoutMs = 2600) {
 export function LibraryView() {
   const { ready, games, settings, actions } = useLibrary()
   const { toast, show } = useToast()
+  const sample = useSampleLibrary()
 
   const [editing, setEditing] = useState<Game | null | 'new'>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -61,6 +58,10 @@ export function LibraryView() {
     show('success', `Añadidos ${summary.added}, fusionados ${summary.merged}, omitidos ${summary.skipped}.`)
   }
 
+  const loadSample = async () => {
+    show('success', sampleSummaryMessage(await sample.load()))
+  }
+
   return (
     <div className="stack" style={{ gap: 16 }}>
       <div className="toolbar">
@@ -85,11 +86,16 @@ export function LibraryView() {
         <EmptyState
           icon="📚"
           title="Tu biblioteca está vacía"
-          description="Añade juegos a mano o impórtalos desde un CSV/JSON. Todo se guarda localmente en tu navegador."
+          description="Añade juegos a mano, impórtalos desde un CSV/JSON o empieza con una biblioteca de ejemplo para probar el sorteo. Todo se guarda localmente en tu navegador."
           action={
-            <button className="btn btn--primary" onClick={() => setEditing('new')}>
-              ＋ Añadir tu primer juego
-            </button>
+            <div className="row row--wrap" style={{ justifyContent: 'center' }}>
+              <button className="btn btn--primary" onClick={() => setEditing('new')}>
+                ＋ Añadir tu primer juego
+              </button>
+              <button className="btn" onClick={() => void loadSample()} disabled={sample.loading}>
+                🎁 Cargar biblioteca de ejemplo ({sample.size})
+              </button>
+            </div>
           }
         />
       ) : visible.length === 0 ? (
